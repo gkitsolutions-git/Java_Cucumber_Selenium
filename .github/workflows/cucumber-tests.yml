@@ -9,7 +9,7 @@ on:
 
 # Required for GitHub Pages deployment
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -65,6 +65,8 @@ jobs:
       - name: Configure GitHub Pages
         if: always()
         uses: actions/configure-pages@v4
+        with:
+          enablement: true
 
       - name: Upload HTML report as Pages artifact
         if: always()
@@ -80,6 +82,9 @@ jobs:
     needs: test
     if: always()
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Deploy to GitHub Pages
