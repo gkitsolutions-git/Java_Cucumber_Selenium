@@ -7,12 +7,6 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
-# Required for GitHub Pages deployment
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
 # Allow only one concurrent Pages deployment
 concurrency:
   group: "pages"
@@ -25,6 +19,8 @@ jobs:
   test:
     name: Run Tests & Generate Cucumber Report
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -62,18 +58,6 @@ jobs:
           path: target/cucumber-html-reports/
           retention-days: 30
 
-      - name: Configure GitHub Pages
-        if: always()
-        uses: actions/configure-pages@v4
-        with:
-          enablement: true
-
-      - name: Upload HTML report as Pages artifact
-        if: always()
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: target/cucumber-html-reports/
-
   # ─────────────────────────────────────────────
   # JOB 2: Publish report to GitHub Pages
   # ─────────────────────────────────────────────
@@ -82,11 +66,28 @@ jobs:
     needs: test
     if: always()
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+      - name: Download Cucumber HTML report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cucumber-html-report
+          path: cucumber-html-reports/
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload HTML report as Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: cucumber-html-reports/
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
