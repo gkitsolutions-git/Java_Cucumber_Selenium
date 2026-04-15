@@ -1,0 +1,95 @@
+name: Cucumber Selenium Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+# Required for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent Pages deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # ─────────────────────────────────────────────
+  # JOB 1: Build, run tests, generate report
+  # ─────────────────────────────────────────────
+  test:
+    name: Run Tests & Generate Cucumber Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Verify Google Chrome is available
+        run: google-chrome --version
+
+      - name: Run tests with mvn clean verify
+        # continue-on-error so the report is still published on test failure
+        continue-on-error: true
+        run: mvn clean verify
+        # CI=true is auto-set by GitHub Actions → hooks auto-enable headless mode
+
+      - name: Upload Cucumber JSON report (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cucumber-json-report
+          path: target/cucumber.json
+          retention-days: 30
+
+      - name: Upload Cucumber HTML report (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cucumber-html-report
+          path: target/cucumber-html-reports/
+          retention-days: 30
+
+      - name: Configure GitHub Pages
+        if: always()
+        uses: actions/configure-pages@v4
+
+      - name: Upload HTML report as Pages artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/cucumber-html-reports/
+
+  # ─────────────────────────────────────────────
+  # JOB 2: Publish report to GitHub Pages
+  # ─────────────────────────────────────────────
+  deploy:
+    name: Publish Report to GitHub Pages
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Print report URL to job summary
+        run: |
+          echo "## Cucumber Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Report published at:** ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "_Navigate to the URL above to view the full Masterthought Cucumber HTML report._" >> $GITHUB_STEP_SUMMARY
