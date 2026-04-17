@@ -42,22 +42,6 @@ jobs:
         run: mvn clean verify
         # CI=true is auto-set by GitHub Actions → hooks auto-enable headless mode
 
-      - name: Generate Cucumber HTML report
-        # Always run so the report is generated even when tests fail or mvn exits early
-        if: always()
-        run: |
-          mvn net.masterthought:maven-cucumber-reporting:generate@generate-cucumber-report
-
-      - name: Debug - list target directory
-        if: always()
-        run: |
-          echo "=== target/ contents ==="
-          ls -la target/ || echo "target/ not found"
-          echo "=== target/cucumber-html-reports/ ==="
-          ls -la target/cucumber-html-reports/ || echo "cucumber-html-reports/ not found"
-          echo "=== cucumber.json size ==="
-          wc -c target/cucumber.json || echo "cucumber.json not found"
-
       - name: Upload Cucumber JSON report (artifact)
         if: always()
         uses: actions/upload-artifact@v4
@@ -71,7 +55,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cucumber-html-report
-          path: target/cucumber-html-reports/
+          path: target/cucumber-reports/
           retention-days: 30
 
   # ─────────────────────────────────────────────
