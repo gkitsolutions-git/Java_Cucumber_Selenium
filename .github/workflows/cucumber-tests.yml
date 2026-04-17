@@ -42,6 +42,24 @@ jobs:
         run: mvn clean verify
         # CI=true is auto-set by GitHub Actions → hooks auto-enable headless mode
 
+      - name: Debug - List report files
+        if: always()
+        run: |
+          echo "=== target/ top-level ==="
+          ls -la target/ || echo "target/ not found"
+          echo ""
+          echo "=== HTML report files ==="
+          find target/ -name "*.html" 2>/dev/null || echo "No HTML files found"
+          echo ""
+          echo "=== JSON report files ==="
+          find target/ -name "*.json" 2>/dev/null || echo "No JSON files found"
+          echo ""
+          echo "=== cucumber-reports dir ==="
+          ls -la target/cucumber-reports/ 2>/dev/null || echo "target/cucumber-reports/ does not exist"
+          echo ""
+          echo "=== cucumber-html-reports dir ==="
+          ls -la target/cucumber-html-reports/ 2>/dev/null || echo "target/cucumber-html-reports/ does not exist"
+
       - name: Upload Cucumber JSON report (artifact)
         if: always()
         uses: actions/upload-artifact@v4
@@ -55,7 +73,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cucumber-html-report
-          path: target/cucumber-reports/
+          path: target/cucumber-html-reports/
+          if-no-files-found: error
           retention-days: 30
 
   # ─────────────────────────────────────────────
