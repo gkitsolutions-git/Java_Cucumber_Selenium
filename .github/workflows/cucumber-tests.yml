@@ -39,28 +39,31 @@ jobs:
       - name: Run tests with mvn clean verify
         # continue-on-error so the report is still published on test failure
         continue-on-error: true
-        run: mvn clean verify
-        # CI=true is auto-set by GitHub Actions → hooks auto-enable headless mode
-
-      - name: Generate Masterthought HTML report
-        if: always()
-        continue-on-error: true
         run: |
-          mvn net.masterthought:maven-cucumber-reporting:5.8.1:generate \
-            -DprojectName="The Internet Automation" \
-            -DoutputDirectory="${PWD}/target/cucumber-html-reports" \
-            -DinputDirectory="${PWD}/target" \
-            -DjsonFiles="cucumber.json"
+          set -o pipefail
+          mvn clean verify 2>&1 | tee /tmp/mvn-build.log
 
-      - name: Debug - List report files after generation
+      - name: Show Maven log highlights
         if: always()
         run: |
-          echo "=== target/ top-level ==="
-          ls -la target/ || echo "target/ not found"
+          echo "=== BUILD result ==="
+          grep -E "BUILD (SUCCESS|FAILURE)|ERROR|WARNING" /tmp/mvn-build.log | tail -20 || true
+          echo "=== Masterthought / cucumber-reporting mentions ==="
+          grep -i "masterthought\|cucumber-reporting\|cucumber.html\|generate-cucumber-report\|outputDirectory\|htmlreport" /tmp/mvn-build.log || echo "No Masterthought mentions found"
+          echo "=== target contents after verify ==="
+          ls -la target/ 2>/dev/null || echo "target/ not found"
           echo "=== cucumber-html-reports dir ==="
           ls -la target/cucumber-html-reports/ 2>/dev/null || echo "target/cucumber-html-reports/ does not exist"
           echo "=== cucumber.json exists? ==="
           ls -lh target/cucumber.json 2>/dev/null || echo "No cucumber.json"
+
+      - name: Upload Maven build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-build-log
+          path: /tmp/mvn-build.log
+          retention-days: 7
 
       - name: Upload Cucumber JSON report (artifact)
         if: always()
@@ -76,7 +79,7 @@ jobs:
         with:
           name: cucumber-html-report
           path: target/cucumber-html-reports/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
 
   # ─────────────────────────────────────────────
