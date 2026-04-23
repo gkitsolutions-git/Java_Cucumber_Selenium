@@ -73,14 +73,11 @@ jobs:
           path: target/cucumber.json
           retention-days: 30
 
-      - name: Upload Cucumber HTML report (artifact)
+      - name: Upload Cucumber HTML report to Pages artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: cucumber-html-report
           path: target/cucumber-html-reports/
-          if-no-files-found: warn
-          retention-days: 30
 
   # ─────────────────────────────────────────────
   # JOB 2: Publish report to GitHub Pages
@@ -93,25 +90,13 @@ jobs:
     permissions:
       pages: write
       id-token: write
-      actions: read
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Download Cucumber HTML report artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: cucumber-html-report
-          path: cucumber-html-reports/
-
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-
-      - name: Upload HTML report as Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: cucumber-html-reports/
 
       - name: Deploy to GitHub Pages
         id: deployment
