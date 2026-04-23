@@ -73,11 +73,60 @@ jobs:
           path: target/cucumber.json
           retention-days: 30
 
+      - name: Prepare Pages site content
+        if: always()
+        run: |
+          rm -rf pages-site
+          mkdir -p pages-site
+
+          if [ -f target/cucumber-html-reports/index.html ]; then
+            echo "Using target/cucumber-html-reports/index.html"
+            cp -R target/cucumber-html-reports/. pages-site/
+          elif [ -f target/cucumber-html-reports/cucumber-html-reports/overview-features.html ]; then
+            echo "Using nested Masterthought report and creating root index.html"
+            cp -R target/cucumber-html-reports/cucumber-html-reports/. pages-site/
+            cat > pages-site/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; url=overview-features.html">
+            <title>Redirecting to Cucumber report...</title>
+          </head>
+          <body>
+            <p>Redirecting to <a href="overview-features.html">overview-features.html</a>...</p>
+          </body>
+          </html>
+          HTML
+          elif [ -f target/cucumber-reports/index.html ]; then
+            echo "Falling back to target/cucumber-reports/index.html"
+            cp -R target/cucumber-reports/. pages-site/
+          else
+            echo "No HTML report found, creating diagnostic index.html"
+            cat > pages-site/index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <title>Cucumber report not found</title>
+          </head>
+          <body>
+            <h1>Cucumber report not found</h1>
+            <p>The workflow could not find a generated HTML report in expected locations.</p>
+            <p>Check job logs and artifacts for details.</p>
+          </body>
+          </html>
+          HTML
+          fi
+
+          echo "Pages site content:"
+          ls -la pages-site
+
       - name: Upload Cucumber HTML report to Pages artifact
         if: always()
         uses: actions/upload-pages-artifact@v3
         with:
-          path: target/cucumber-html-reports/
+          path: pages-site/
 
   # ─────────────────────────────────────────────
   # JOB 2: Publish report to GitHub Pages
